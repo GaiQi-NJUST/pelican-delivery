@@ -266,7 +266,7 @@ setInterval(() => {
       c = coOf();
     $('jbS').innerHTML = JOB.fired
       ? `<span style="color:#ff8080">已被 ${JOB.co} 解雇</span> · 去求职网找新工作`
-      : `${JOB.co} 骑手 · <span class="gold">${rTier(r)}</span>`;
+      : `${JOB.co} 骑手 · <span class="gold">${rTier(r)}</span>${typeof curTitle === 'function' && curTitle() ? `<span class="title2">${curTitle()}</span>` : ''}`;
     $('jbR').innerHTML =
       `<div class="rbig"><i class="ico i-star"></i><b>${r.toFixed(2)}</b></div><span class="rchip">单价倍率 ×${(rMult(r) * c.m).toFixed(2)} ｜ 1星差评 <b style="color:${JOB.low >= 4 ? '#ff8080' : '#ffd34d'}">${JOB.low}/6</b></span>`;
     $('jbT').innerHTML = [
