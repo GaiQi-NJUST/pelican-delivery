@@ -959,8 +959,9 @@ function v13Update(dt, t) {
   const a = updCrime(dt, t);
   const b = updNpcs(dt, t);
   updSnow(dt);
+  updSmoke(dt);
   updStreak();
-  const c = b || a || nearDoor();
+  const c = b || fuelAct() || memeAct() || a || nearDoor();
   if (c && !walk) setAct2(c.key, c.label, c.fn);
   else setAct2('', null, null);
 }
