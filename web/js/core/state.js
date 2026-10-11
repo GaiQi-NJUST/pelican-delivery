@@ -120,7 +120,7 @@ function saveCoins() {
         ach: SAVE.ach,
         x: Object.fromEntries(
           Object.keys(SAVE)
-            .filter((k) => /^(roof_|cal$|homeK$|momDay$)|_egg$/.test(k))
+            .filter((k) => /^(roof_|cal$|homeK$|momDay$|fuel$|achx$|title$|meme_)|_egg$/.test(k))
             .map((k) => [k, SAVE[k]])
         ),
       })
