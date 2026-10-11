@@ -975,7 +975,14 @@ function setPad(on) {
     if (e) e.style.visibility = on ? 'hidden' : '';
   });
   $('gas').textContent = on ? '互动' : drive !== 'bike' ? '油门' : '蹬车';
-  $('brake').textContent = on ? '跑' : '刹车';
+  {
+    // v0.1.10：只改文字，不要把倒车灯按钮一起清掉
+    const bk = $('brake'),
+      bl = bk.querySelector && bk.querySelector('.bl');
+    if (bl && bl.id !== 'q') bl.textContent = on ? '跑' : '刹车';
+    else bk.textContent = on ? '跑' : '刹车';
+    if (!on && window.updShift) updShift();
+  }
   $('footUI').style.display = on ? 'flex' : 'none';
   if (!on) {
     $('intTip').style.display = 'none';
@@ -1775,6 +1782,77 @@ function knockUpd(dt) {
     }, 1100);
   }
 }
+// ===== v0.1.10 室内视角：追尾 / 远景 / 侧面 / 自由，全部限制在房间内，不再穿模 =====
+let intYaw = 0,
+  intPitch = 0.35,
+  intDrag = null;
+const glEl = $('gl');
+glEl.addEventListener('pointerdown', (e) => {
+  if (!INT.on || camMode !== 3) return;
+  intDrag = { x: e.clientX, y: e.clientY, id: e.pointerId };
+});
+glEl.addEventListener('pointermove', (e) => {
+  if (!intDrag || e.pointerId !== intDrag.id) return;
+  intYaw -= (e.clientX - intDrag.x) * 0.008;
+  intPitch = clamp(intPitch + (e.clientY - intDrag.y) * 0.006, 0.05, 1.1);
+  intDrag.x = e.clientX;
+  intDrag.y = e.clientY;
+});
+['pointerup', 'pointercancel'].forEach((n) => glEl.addEventListener(n, () => (intDrag = null)));
+function intRoomBox() {
+  const tp = pel.position;
+  if (INT.p.shop)
+    return {
+      x0: IX + 0.5,
+      x1: IX + SR.W - 0.5,
+      z1: IZ + SR.D - 0.5,
+      y0: IY + 0.6,
+      y1: IY + SR.H - 0.35,
+      cx: IX + SR.W / 2,
+    };
+  const fy = INT.stairs ? tp.y - 1.12 : IY + (INT.floor - 1) * FH;
+  return {
+    x0: IX + 0.45,
+    x1: IX + TW - 0.45,
+    z1: IZ + TD - 0.45,
+    y0: fy + 0.55,
+    y1: fy + FH - 0.4,
+    cx: IX + TW / 2,
+  };
+}
+function intCamMode() {
+  const c = INT.cam,
+    tp = pel.position,
+    bx = intRoomBox();
+  if (camMode === 1) {
+    c.pos.set(tp.x * 0.5 + bx.cx * 0.5, bx.y1, Math.min(tp.z - 5.5, IZ - 3.5));
+    c.look.set(tp.x, tp.y - 0.2, tp.z + 1.2);
+  } else if (camMode === 2) {
+    const sd = tp.x < bx.cx ? 1 : -1;
+    c.pos.set(tp.x + sd * 3.6, tp.y + 0.75, tp.z - 1.1);
+    c.look.set(tp.x, tp.y + 0.05, tp.z + 0.5);
+  } else if (camMode === 3) {
+    const r = 3.8,
+      cp = Math.cos(intPitch);
+    c.pos.set(
+      tp.x + Math.sin(intYaw) * r * cp,
+      tp.y + 0.3 + Math.sin(intPitch) * r,
+      tp.z - Math.cos(intYaw) * r * cp
+    );
+    c.look.set(tp.x, tp.y + 0.1, tp.z);
+  }
+  // 限制在房间内（正面墙是开放的剖面，可以退到门外）
+  c.pos.x = clamp(c.pos.x, bx.x0, bx.x1);
+  c.pos.y = clamp(c.pos.y, bx.y0, bx.y1);
+  c.pos.z = Math.min(c.pos.z, bx.z1);
+  // 镜头不能离鹈鹕太近，避免穿进身体
+  const dx = c.pos.x - tp.x,
+    dz = c.pos.z - tp.z;
+  const dd = Math.hypot(dx, dz);
+  if (dd < 1.2) {
+    c.pos.z = Math.min(tp.z - 1.4, bx.z1);
+  }
+}
 // shared update
 function intUpdate(dt, t) {
   if (!INT.on) return;
@@ -1782,6 +1860,7 @@ function intUpdate(dt, t) {
   if (state === 'paused') return;
   if (INT.p.shop) shopUpdate(dt, t);
   else towerUpdate(dt, t);
+  intCamMode();
   intLight.position.copy(pel.position).add(V(0, 2.4, -1.5));
   camera.position.lerp(c.cam.pos, Math.min(1, dt * 4));
   const lk = c.lk || (c.lk = c.cam.look.clone());
@@ -1978,3 +2057,149 @@ function nearDoor() {
   if (v < 0.4 && !stolen) return { key: 'foot', label: '🚶 下车步行', fn: startFoot };
   return null;
 }
+
+// ===== v0.1.10 室内精细化：店铺软装 + 楼道细节（只跟随当前楼层，不增加整栋楼的绘制量）=====
+(function () {
+  const bm = (c) => new THREE.MeshBasicMaterial({ color: c, toneMapped: false });
+  // ---------- 店铺 ----------
+  const sd = new THREE.Group();
+  shopRoom.add(sd);
+  const wood = IM(0x7a5230),
+    band = IM(0x9b7653),
+    pot = IM(0xc8643c),
+    leaf = M(0x3f9b4a, { roughness: 0.8 }),
+    steel = M(0xcfd5da, { metalness: 0.6, roughness: 0.3 }),
+    darkS = IM(0x333333);
+  // 护墙板
+  ibx(SR.W - 0.4, 1, 0.06, band, sd, 7, 0.5, 9.86);
+  for (const x of [0.14, 13.86]) ibx(0.06, 1, SR.D - 0.4, band, sd, x, 0.5, 5);
+  // 顶部木梁
+  for (const z of [2.6, 6.2]) ibx(SR.W, 0.22, 0.3, wood, sd, 7, SR.H - 0.12, z);
+  // 吊灯（发光材质，不新增光源）
+  for (const [x, z] of TABLES) {
+    icy(0.012, 0.012, 1.1, darkS, sd, x, SR.H - 0.55, z, 4);
+    const sh = icy(0.12, 0.34, 0.26, IM(0x2f4f4f), sd, x, SR.H - 1.2, z, 12);
+    sh.material = IM(0x2f4f4f);
+    isp(0.1, bm(0xfff1c4), sd, x, SR.H - 1.32, z, 1, 1, 1);
+  }
+  // 冷饮柜（左墙）
+  ibx(0.7, 2.1, 1.3, steel, sd, 0.45, 1.05, 7.3);
+  const gl = M(0xbfe6ff, { transparent: true, opacity: 0.35, roughness: 0.05 });
+  ibx(0.04, 1.7, 1.1, gl, sd, 0.82, 1.15, 7.3);
+  const canC = [0xd72631, 0x2a7de1, 0xf5b700, 0x2bb673, 0xffffff];
+  for (let r = 0; r < 4; r++)
+    for (let k = 0; k < 4; k++)
+      icy(
+        0.05,
+        0.05,
+        0.16,
+        IM(canC[(r + k) % canC.length]),
+        sd,
+        0.62,
+        0.55 + r * 0.42,
+        6.88 + k * 0.28,
+        8
+      );
+  ibx(0.04, 0.25, 1.1, bm(0x58c7ff), sd, 0.83, 2.0, 7.3);
+  SHOP_OBS.push([0, 0.95, 6.55, 8.05]);
+  // 门口两盆绿植
+  for (const x of [0.75, 13.25]) {
+    icy(0.22, 0.17, 0.42, pot, sd, x, 0.21, 0.75, 10);
+    isp(0.36, leaf, sd, x, 0.75, 0.75, 1, 1.25, 1);
+    isp(0.24, leaf, sd, x + 0.12, 1.1, 0.7, 1, 1.2, 1);
+    SHOP_OBS.push([x - 0.4, x + 0.4, 0.3, 1.2]);
+  }
+  // 收银机 + 扫码牌
+  ibx(0.5, 0.3, 0.4, darkS, sd, 9.3, 1.32, 7.5);
+  ibx(0.42, 0.04, 0.3, bm(0x6fd3ff), sd, 9.3, 1.5, 7.35).rotation.x = -0.5;
+  const qr = textPlane2('扫码点单', 0.5, 0.6, '#111', '#ffffff');
+  qr.position.set(5, 1.48, 7.08);
+  sd.add(qr);
+  // 桌上纸巾盒 + 调料瓶
+  for (const [x, z] of TABLES) {
+    ibx(0.18, 0.1, 0.12, IM(0xffffff), sd, x - 0.15, 0.86, z);
+    icy(0.03, 0.035, 0.14, IM(0xb3261e), sd, x + 0.15, 0.88, z + 0.05, 8);
+    icy(0.03, 0.035, 0.14, IM(0x222222), sd, x + 0.24, 0.88, z - 0.04, 8);
+  }
+  // 挂钟
+  const clk = icy(0.32, 0.32, 0.05, IM(0xffffff), sd, 11.2, 3.15, 9.84, 20);
+  clk.rotation.x = PI / 2;
+  const hh = ibx(0.03, 0.18, 0.02, darkS, sd, 11.2, 3.22, 9.8);
+  const mh = ibx(0.02, 0.26, 0.02, darkS, sd, 11.26, 3.15, 9.8);
+  mh.rotation.z = -1.1;
+  hh.rotation.z = 0.4;
+  // 门口地垫
+  const mat = new THREE.Mesh(new THREE.PlaneGeometry(2.2, 0.9), IM(0x6b2e2e));
+  mat.rotation.x = -PI / 2;
+  mat.position.set(7, 0.012, 0.65);
+  sd.add(mat);
+
+  // ---------- 住宅楼 / 宿舍楼道（只放在当前楼层）----------
+  const hd = new THREE.Group();
+  tower.add(hd);
+  const panelM = bm(0xfff6dc);
+  for (const [x, z] of [
+    [6.5, 2.5],
+    [6.5, 5.6],
+    [11.5, 2.5],
+  ]) {
+    const p = new THREE.Mesh(new THREE.PlaneGeometry(1.1, 0.5), panelM);
+    p.rotation.x = PI / 2;
+    p.position.set(x, FH - 0.26, z);
+    hd.add(p);
+  }
+  ibx(5.6, 0.12, 0.04, IM(0x5c4a3a), hd, 6.8, 0.06, 7.8); // 踢脚线
+  // 消火栓箱
+  ibx(0.7, 0.9, 0.18, IM(0xc0392b), hd, 9.05, 1.05, 7.72);
+  const xh = textPlane2('消火栓', 0.6, 0.22, '#ffffff', '#c0392b');
+  xh.position.set(9.05, 1.3, 7.62);
+  xh.rotation.y = PI;
+  hd.add(xh);
+  // 绿植 + 鞋柜 + 地垫
+  for (const x of [4.45, 8.45]) {
+    icy(0.16, 0.12, 0.32, IM(0xd9d9d9), hd, x, 0.16, 7.45, 10);
+    isp(0.26, leaf, hd, x, 0.55, 7.45, 1, 1.3, 1);
+  }
+  ibx(0.6, 0.45, 0.3, IM(0xa47b52), hd, 6.5, 0.23, 7.65);
+  for (const x of DOORX) {
+    const dm = new THREE.Mesh(new THREE.PlaneGeometry(0.9, 0.5), IM(0x7b6650));
+    dm.rotation.x = -PI / 2;
+    dm.position.set(x, 0.012, 7.35);
+    hd.add(dm);
+  }
+  // 公告栏（宿舍楼会换成门禁通知）
+  const noteN = textPlane2('通知：本周六 9:00–12:00 停水', 1.3, 0.5, '#3b2a12', '#f3e1b5');
+  noteN.position.set(6.5, 1.75, 7.78);
+  noteN.rotation.y = PI;
+  hd.add(noteN);
+  const noteD = textPlane2(
+    '南理工宿舍 · 23:30 门禁 · 禁用大功率电器',
+    1.6,
+    0.5,
+    '#ffffff',
+    '#1f4e8c'
+  );
+  noteD.position.copy(noteN.position);
+  noteD.rotation.y = PI;
+  noteD.visible = false;
+  hd.add(noteD);
+  // 楼梯间窗户
+  const wf = IM(0xeeeeee);
+  const win = new THREE.Mesh(
+    new THREE.PlaneGeometry(2.4, 1.1),
+    M(0x9fd3ea, { roughness: 0.1, metalness: 0.2 })
+  );
+  win.rotation.y = -PI / 2;
+  win.position.set(TW - 0.12, 1.75, 2.4);
+  hd.add(win);
+  ibx(0.06, 0.08, 2.5, wf, hd, TW - 0.13, 2.32, 2.4);
+  ibx(0.06, 0.08, 2.5, wf, hd, TW - 0.13, 1.18, 2.4);
+  ibx(0.06, 1.2, 0.06, wf, hd, TW - 0.13, 1.75, 2.4);
+  const _setFloor = setFloor;
+  setFloor = function (f) {
+    _setFloor(f);
+    hd.position.y = (f - 1) * FH;
+    noteN.visible = !INT.dorm && f > 1;
+    noteD.visible = !!INT.dorm;
+  };
+})();
