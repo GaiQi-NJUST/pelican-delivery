@@ -1,0 +1,4 @@
+*.apk
+*.idsig
+*.keystore
+__pycache__/
