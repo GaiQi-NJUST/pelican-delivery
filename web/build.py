@@ -21,6 +21,7 @@ CSS_MANIFEST = [
     'css/phone.css',    # 手机、来电、灵动岛、商店三栏、存档面板
     'css/ui2.css',      # v4 UI：挡杆/驾照/骑手页/求职网
     'css/assets.css',   # 图标与按钮素材（base64，体积大）
+    'css/v010.css',     # v0.1.10：喇叭/油量图标、油量提示、成就页
 ]
 
 JS_MANIFEST = [
@@ -44,6 +45,9 @@ JS_MANIFEST = [
     'js/systems/quests.js',      # 支线任务、聊天 NPC、小偷追击、杂项
     'js/systems/phone.js',       # 手机 App、剧情来电
     'js/systems/health.js',      # HP/医院、彩蛋
+    'js/systems/fuel.js',        # v0.1.10：油量、加油站、汽车引擎声
+    'js/systems/memes.js',       # v0.1.10：2026 抖音热梗彩蛋
+    'js/systems/achievements.js',# v0.1.10：成就分类/进度/称号
     'js/ui/modals.js',           # toast、设置菜单、弹窗、横竖屏
     'js/ui/hud.js',              # 仪表盘/罗盘、触控按键、互动按钮、相机
     'js/ui/shop.js',             # 商店 UI、换装、兑换码
