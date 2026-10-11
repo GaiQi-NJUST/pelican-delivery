@@ -88,6 +88,13 @@ cd web
 python3 build.py      # 把 game.js / shell.html / css / 图片素材打包成单文件 index.html
 ```
 
+**冒烟测试（每次改动后必跑）：**
+
+```bash
+pip install playwright && python -m playwright install chromium
+python logs/smoke_test.py
+```
+
 ## 📱 安卓版
 
 `android/` 是一个极简的 WebView 外壳，游戏页面和 three.js 都放在 `assets/` 里，离线也能玩。
@@ -121,7 +128,11 @@ pelican-delivery/
 │   ├── src/com/gaiqi/pelican/MainActivity.java
 │   ├── res/             # 图标、应用名
 │   └── assets/          # 离线版游戏页面 + three.js
-└── docs/                # README 用的截图
+├── docs/                # README 用的截图
+└── logs/
+    ├── develop.log      # 开发日志：每个版本的改动
+    ├── error.log        # 错误日志：历史 bug 与处理
+    └── smoke_test.py    # Playwright 冒烟测试
 ```
 
 ## 📝 更新日志
