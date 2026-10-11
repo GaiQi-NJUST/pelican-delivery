@@ -51,7 +51,7 @@ function frame() {
       brkIn = braking;
       if (v < 0.3 || gas) gear = 1;
     }
-    const canPedal = gasIn && (!exhausted || motor);
+    const canPedal = gasIn && (!exhausted || motor) && !(motor && fuelOut);
     const vmax =
       gear < 0 ? (isCar ? 3 : 2.2) : fieldOn ? 5 : motor ? VPm.vmax : boostT > 0 ? 23 : VMAX;
     if (canPedal) v += (motor ? VPm.acc : boostT > 0 ? 6.5 : 4.6) * Math.max(0, 1 - v / vmax) * dt;
@@ -286,6 +286,12 @@ function frame() {
   pedals.forEach((p) => (p.rotation.z = theta));
   updChain(chainOff);
   if (pel.parent === lean && drive === 'bike') updLegs(theta);
+  // v0.1.10：腿部显示规则——只有坐在汽车/摩托上才隐藏腿；下车走路、进店、进楼时一定显示
+  {
+    const showLegs = drive === 'bike' || pel.parent !== lean;
+    if (legs[0].th.visible !== showLegs)
+      legs.forEach((L) => [L.th, L.sn, L.kn, L.ft].forEach((m) => (m.visible = showLegs)));
+  }
   wobblePouch(t, 0.08 + Math.min(0.25, v * 0.018) + (state === 'crash' ? 0.3 : 0));
   blinkT -= dt;
   if (blinkT < 0) {
@@ -375,6 +381,11 @@ function frame() {
   updHP(dt);
   eggsUpdate(dt, t);
   v15Update(dt, t);
+  fuelUpdate(dt);
+  if (controls)
+    controls.enabled =
+      !INT.on && state !== 'foot' && state !== 'walk' && state !== 'menu' && state !== 'board';
+  memesUpdate(dt, t);
   if (state === 'ride' || state === 'crash' || state === 'walk' || state === 'foot') updMissionUI();
   drawGauge();
   updAudio(t);
@@ -393,12 +404,17 @@ function updAudio(t) {
     0.03
   );
   squealOsc.frequency.setTargetAtTime(2300 + Math.sin(t * 38) * 70, n, 0.01);
+  // v0.1.10：路上车流的引擎声（受「汽车音量」控制，默认关闭；菜单/暂停/室内不响）
   let best = 1e9,
     bv = 0;
-  if (drive !== 'bike') {
-    best = 0;
-    bv = v * 0.6;
-  } else
+  const outdoor =
+    (state === 'ride' ||
+      state === 'crash' ||
+      state === 'foot' ||
+      state === 'walk' ||
+      state === 'board') &&
+    !INT.on;
+  if (outdoor)
     for (const c of cars) {
       const d = c.pos.distanceTo(player.position);
       if (d < best) {
@@ -406,9 +422,10 @@ function updAudio(t) {
         bv = c.v;
       }
     }
-  engG.gain.setTargetAtTime(k * (best < 35 ? 0.1 * (1 - best / 35) : 0), n, 0.1);
-  engOsc.frequency.setTargetAtTime(45 + bv * 5, n, 0.1);
-  engF.frequency.setTargetAtTime(200 + bv * 25, n, 0.1);
+  engG.gain.setTargetAtTime(k * carVol * (best < 35 ? 0.07 * (1 - best / 35) : 0), n, 0.15);
+  engOsc.frequency.setTargetAtTime(32 + bv * 3.2, n, 0.15);
+  engF.frequency.setTargetAtTime(160 + bv * 18, n, 0.15);
+  updCarAudio(t, 1 / 60);
 }
 addEventListener('resize', () => {
   camera.aspect = innerWidth / innerHeight;
