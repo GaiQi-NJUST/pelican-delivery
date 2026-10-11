@@ -81,11 +81,25 @@ function drawGauge() {
   gx.beginPath();
   gx.arc(c, c, 80, sa1, sa0, true);
   gx.stroke();
-  const sc = stamina > 50 ? '#5ef08a' : stamina > 20 ? '#ffd34d' : '#ff5a5a';
-  gx.strokeStyle = boostT > 0 ? '#6ad1ff' : sc;
-  gx.beginPath();
-  gx.arc(c, c, 80, sa1, sa1 - ((sa1 - sa0) * stamina) / 100, true);
-  gx.stroke();
+  // v0.1.10：开汽车/摩托时，底部弧条显示油量（黄条）；骑自行车时显示体力
+  const fu = typeof getFuel === 'function' ? getFuel() : null;
+  if (fu != null) {
+    const blink = fu < 15 && Math.floor(performance.now() / 400) % 2;
+    gx.strokeStyle = fu < 15 ? (blink ? '#ff5a5a' : '#ffb020') : '#ffd400';
+    gx.beginPath();
+    gx.arc(c, c, 80, sa1, sa1 - ((sa1 - sa0) * clamp(fu, 0, 100)) / 100, true);
+    gx.stroke();
+    gx.font = '900 13px -apple-system,sans-serif';
+    gx.fillStyle = '#ffd400';
+    gx.fillText('E', c + Math.cos(sa1) * 80 - 12, c + Math.sin(sa1) * 80 - 6);
+    gx.fillText('F', c + Math.cos(sa0) * 80 + 12, c + Math.sin(sa0) * 80 - 6);
+  } else {
+    const sc = stamina > 50 ? '#5ef08a' : stamina > 20 ? '#ffd34d' : '#ff5a5a';
+    gx.strokeStyle = boostT > 0 ? '#6ad1ff' : sc;
+    gx.beginPath();
+    gx.arc(c, c, 80, sa1, sa1 - ((sa1 - sa0) * stamina) / 100, true);
+    gx.stroke();
+  }
 }
 
 // ===== physics helpers =====
@@ -241,6 +255,12 @@ const prevP = V(),
 function updCamera(dt) {
   const offs = [V(-5.6, 2.7, 0.9), V(-11, 6.5, 1.2), V(0.4, 1.9, 6.5)];
   if (camMode === 3 && controls) {
+    if (!camInit) {
+      // v0.1.10：从室内/步行回来时重置自由视角，避免镜头留在旧位置穿模
+      controls.target.copy(player.position).add(V(0, 1, 0));
+      camera.position.copy(player.position).add(offs[0].clone().applyAxisAngle(UP, heading));
+      camInit = true;
+    }
     controls.target.add(tmp.subVectors(player.position, prevP));
     camera.position.add(tmp);
     controls.update();
