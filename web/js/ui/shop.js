@@ -9,9 +9,20 @@ function applyEquip() {
   const e = SAVE.equip;
   try {
     if (stolen) {
+      // 偷来的车被强制收回（吊销驾照/换车等）：车留在原地，自行车回到原处
+      if (state === 'ride') {
+        exitStolen('return');
+        return;
+      }
       player.remove(stolen.b.g);
       stolen = null;
       if (chase) endChase();
+      if (leftBike) {
+        player.position.set(leftBike.x, 0, leftBike.z);
+        heading = leftBike.h;
+        scene.remove(leftBike.g);
+        leftBike = null;
+      }
     }
   } catch (_) {}
   let item = SHOP.find((i) => i.id === e.vehicle) || SHOP[0];
