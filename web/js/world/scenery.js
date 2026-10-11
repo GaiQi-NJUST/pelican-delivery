@@ -237,6 +237,8 @@ const ALONG = [-28, 0, 28],
   FRONT = B / 2 - RH - 3.2;
 function poiAt(bi, bj, side, slot) {
   if (isSchool(bi, bj)) return null;
+  // v0.1.10：加油站地块（每 6×6 街区一座，见 systems/fuel.js）
+  if (side === 0 && slot === 1 && ((bi % 6) + 6) % 6 === 3 && ((bj % 6) + 6) % 6 === 3) return null;
   const h = hash(bi * 3.17 + side * 17.3 + slot * 5.71, bj * 2.73 - side * 4.13 + slot * 11.37);
   if (h < 0.1) return null;
   const h2 = hash(bi * 9.1 + side * 2.3 + slot * 7.7 + 1.3, bj * 5.3 + slot * 3.1 - side * 8.9),
