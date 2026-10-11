@@ -17,6 +17,14 @@ function inSchool(x, z) {
     ni = Math.round(x / B);
   return isSchool(ni - 1, bj) || isSchool(ni, bj);
 }
+// v0.1.10：自动缩放字号的文字牌（fg 字色, bg 底色）
+function textPlane2(txt, w, h, fg, bg) {
+  const cw = 512,
+    ch = Math.round((512 * h) / w);
+  const n = [...txt].reduce((a, c) => a + (/[\x00-\xff]/.test(c) ? 0.58 : 1), 0);
+  const fs = Math.max(10, Math.min(ch * 0.62, (cw * 0.9) / Math.max(1, n)));
+  return textPlane(txt, w, h, bg, fg, `900 ${Math.round(fs)}px sans-serif`);
+}
 function textPlane(txt, w, h, bg, fg, font) {
   const t = canvasTex(512, Math.round((512 * h) / w), (x, cw, ch) => {
     if (bg) {
@@ -493,7 +501,7 @@ function updPeds(dt, t) {
     }
     if (state === 'ride' && p.st !== 'down') {
       const hitR = drive === 'car' ? 1.7 : drive === 'moto' ? 0.95 : 0.7;
-      if (dist < hitR && v > 1.2) hitPed(p, pTmp);
+      if (dist < hitR && v > 1.2 && !(p.dodgeT > 0)) hitPed(p, pTmp);
       else if (p.fan && !p.fanDone && dist < 5 && v < 0.3) {
         p.fanDone = true;
         coins += 20;
