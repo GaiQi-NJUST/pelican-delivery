@@ -6,9 +6,9 @@
 
 一款用 Three.js 写成的 3D 骑行送外卖小游戏 · 网页 + 安卓双端
 
-> 🚧 **预览版**：当前为 v0.1.9 Preview，尚未发布正式版，玩法和存档格式都可能变动。
+> 🚧 **预览版**：当前为 v0.1.10 Beta，尚未发布正式版，玩法和存档格式都可能变动。
 
-[![Version](https://img.shields.io/badge/version-0.1.9%20Preview-ff8a3d?style=for-the-badge)](#-更新日志)
+[![Version](https://img.shields.io/badge/version-0.1.10%20Beta-ff8a3d?style=for-the-badge)](#-更新日志)
 [![Three.js](https://img.shields.io/badge/Three.js-r147-000000?style=for-the-badge&logo=threedotjs&logoColor=white)](https://threejs.org/)
 [![Android](https://img.shields.io/badge/Android-APK-3DDC84?style=for-the-badge&logo=android&logoColor=white)](#-安卓版)
 [![Play](https://img.shields.io/badge/在线试玩-点我-4c9aff?style=for-the-badge&logo=googlechrome&logoColor=white)](https://hark.site/s/0d49c37e-625c-432c-92bd-f6834056cb3b)
@@ -142,7 +142,16 @@ pelican-delivery/
 
 ## 📝 更新日志
 
-**v0.1.9 Preview**（当前）
+**v0.1.10 Beta**（当前）
+- 🚗 抢车重做：下车走过去上车；车主当场追你，拉开就打车追，追满 30 秒放弃；自行车留在原地，要走回去取
+- ⛽ 油量系统：仪表盘黄色油量条；偷来的车只有 20%–35% 油、加不了油、没油就报废；自己的车满箱能开 2–3 天
+- 🏪 加油站：全城很稀少（每 6×6 个街区一座），带便利店；没油还能叫送油车
+- 🔊 引擎声重做：转速、换挡、油门负载都会变；设置里新增「汽车音量」，默认关闭
+- 🏆 成就重做：5 类 50 个成就，🪙50–500 奖励、进度条、可佩戴称号
+- 🏠 店铺和楼道内部加了更多细节；室内四种视角都不再穿模；修复进楼没腿
+- 🐂 2026 抖音热梗彩蛋：不烧心、噜噜操、闪身步、超长蛋挞、大水时代、找 luke、牛来了……
+
+**v0.1.9**
 - 📞 20 通来电，每通 3 个回答，分支结果各不相同；16 秒不选会随机选择
 - 💾 「换个任务重开」改为存档系统：3 个槽位，新建 / 保存 / 读取
 - 🗺️ 支线扩充到 24 个，新增支线图鉴进度
