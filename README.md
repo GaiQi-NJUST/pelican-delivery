@@ -6,7 +6,9 @@
 
 一款用 Three.js 写成的 3D 骑行送外卖小游戏 · 网页 + 安卓双端
 
-[![Version](https://img.shields.io/badge/version-v1.9-ff8a3d?style=for-the-badge)](#-更新日志)
+> 🚧 **预览版**：当前为 v0.1.9 Preview，尚未发布正式版，玩法和存档格式都可能变动。
+
+[![Version](https://img.shields.io/badge/version-0.1.9%20Preview-ff8a3d?style=for-the-badge)](#-更新日志)
 [![Three.js](https://img.shields.io/badge/Three.js-r147-000000?style=for-the-badge&logo=threedotjs&logoColor=white)](https://threejs.org/)
 [![Android](https://img.shields.io/badge/Android-APK-3DDC84?style=for-the-badge&logo=android&logoColor=white)](#-安卓版)
 [![Play](https://img.shields.io/badge/在线试玩-点我-4c9aff?style=for-the-badge&logo=googlechrome&logoColor=white)](https://hark.site/s/0d49c37e-625c-432c-92bd-f6834056cb3b)
@@ -137,7 +139,7 @@ pelican-delivery/
 
 ## 📝 更新日志
 
-**v1.9**
+**v0.1.9 Preview**（当前）
 - 📞 20 通来电，每通 3 个回答，分支结果各不相同；16 秒不选会随机选择
 - 💾 「换个任务重开」改为存档系统：3 个槽位，新建 / 保存 / 读取
 - 🗺️ 支线扩充到 24 个，新增支线图鉴进度
