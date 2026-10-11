@@ -1,6 +1,6 @@
 # task.md — 鹈鹕外卖员 项目交接文档（给接手的 Agent）
 
-> 当前版本：**v0.1.9 Preview**（未发布正式版）  ·  最后更新：2026-10-11  ·  上一任开发：Hark
+> 当前版本：**v0.1.10 Beta**（未发布正式版）  ·  最后更新：2026-10-11  ·  上一任开发：Hark
 > 2026-10-11 晚重构：`web/game.js` 单文件已拆分为 `web/js/` 分层模块（config/core/world/entities/systems/ui，见 §1、§4），构建产物行为不变。
 > 项目负责人 / 策划：小盖（GitHub `GaiQi-NJUST`，南京理工大学）。和他沟通一律用**简体中文**。
 
@@ -15,7 +15,7 @@
 | 类型 | 3D 骑行送外卖小游戏，南京背景，主角是骑自行车的鹈鹕 |
 | 技术 | Three.js **r147**（全局 `THREE`，非 ES module）+ 原生 JS，无框架、无打包器 |
 | 形态 | 单文件 `index.html`（≈1 MB，图片 base64 内嵌）；安卓用 WebView 外壳加载同一个文件 |
-| 主代码 | `web/js/`：25 个分层模块（config/core/world/entities/systems/ui），dist 打包时拼进**同一个 IIFE**（见 §4 分层地图） |
+| 主代码 | `web/js/`：28 个分层模块（config/core/world/entities/systems/ui），dist 打包时拼进**同一个 IIFE**（见 §4 分层地图） |
 | 屏幕 | 手机横屏为主，竖屏也做了适配；触屏按钮 + 键盘 |
 | 存档 | `localStorage`，3 个手动存档槽 + 自动存档 |
 | 线上 | 网页版托管在 hark.site（国内打不开）；国内用户靠 APK |
@@ -33,7 +33,7 @@ pelican-delivery/
 │   ├── index.html         ★开发入口★：语义化 HTML，直接 <link>/<script> 引用 css/ 与 js/，双击即玩
 │   ├── build.py           打包脚本：① 由 assets/ 生成 js/config/assets.js；② 打包出 dist/index.html
 │   ├── dist/index.html    发布单文件（CSS 内联、JS 包 IIFE 内联、three.js 走 CDN、logo 转 dataURL），勿手改
-│   ├── js/                游戏源码：25 个模块，经典 <script> 按序加载、共享全局作用域（见 §4 分层地图）
+│   ├── js/                游戏源码：28 个模块，经典 <script> 按序加载、共享全局作用域（见 §4 分层地图）
 │   │   ├── config/        constants.js（世界常量）/ assets.js（由 build.py 生成）/ database.js（纯数据表）
 │   │   ├── core/          utils.js（工具）/ state.js（状态机+存档）/ save.js（存档面板）/ audio.js（音频）
 │   │   ├── world/         scene.js（场景/相机/天气）/ road.js（道路）/ scenery.js（景物+视觉补丁）
@@ -69,7 +69,7 @@ pelican-delivery/
 ### 2.1 网页
 
 ```bash
-# 开发：直接用浏览器打开 web/index.html（25 个模块按序加载，改完刷新即看）
+# 开发：直接用浏览器打开 web/index.html（28 个模块按序加载，改完刷新即看）
 # 发布：
 cd web && python3 build.py        # 输出 dist/index.html，打印 KB 数
 ```
@@ -78,7 +78,7 @@ cd web && python3 build.py        # 输出 dist/index.html，打印 KB 数
 
 1. 由 `assets/` 生成 **`js/config/assets.js`** 并提交到仓库：`imgs.json` → `const IMG`，`icons.json` 的 `icons` → `const ICONSVG`，`assets/mascots/*.webp` → `const MASC`（dataURL 数组）。素材变更后重跑本脚本即可同步；**不要手改**这个文件。
 2. 把 `index.html` 的 `<!--__CSS_BLOCK__-->` 替换为内联 `<style>`（按 `CSS_MANIFEST` 顺序拼接 `css/`）。
-3. 把 `index.html` 的 `<!--__JS_BLOCK__-->` 替换为：two CDN `<script>`（three.js r147 + OrbitControls）+ 一个 `<script>` 内含 `(function(){` + 按 `JS_MANIFEST` 顺序拼接的 25 个模块 + `})();`。IIFE 包裹保证 dist 与开发期（多 script 共享全局作用域）语义一致。
+3. 把 `index.html` 的 `<!--__JS_BLOCK__-->` 替换为：two CDN `<script>`（three.js r147 + OrbitControls）+ 一个 `<script>` 内含 `(function(){` + 按 `JS_MANIFEST` 顺序拼接的 28 个模块 + `})();`。IIFE 包裹保证 dist 与开发期（多 script 共享全局作用域）语义一致。
 4. `assets/logo_s.png` → dataURL；输出 `dist/index.html`。
 
 > 新增 JS 模块：在 `js/` 下新建文件，并在 `build.py` 的 `JS_MANIFEST` **和** `index.html` 的 `<!--__JS_BLOCK__-->` 里按执行顺序登记（两处顺序必须一致）。
@@ -129,6 +129,7 @@ Hark 的沙盒没有 WebGL、也下载不到 Playwright 的 arm64 Chromium，所
 | `ride` | 骑行或开车（主状态，物理、交规、订单都在这里跑） |
 | `crash` | 摔车 / 被撞的飞出动画 |
 | `walk` | 下车走到店门 / 楼门的取送餐动画 |
+| `board` | v0.1.10：抢车时鹈鹕下车走到驾驶门的上车动画（`updBoard()`） |
 | `foot` | 户外自由步行（摇杆，走 / 跑） |
 | `paused` | 弹窗、手机等暂停 |
 | `end` | 一局结束 |
@@ -154,7 +155,7 @@ Hark 的沙盒没有 WebGL、也下载不到 Playwright 的 arm64 Chromium，所
 
 ## 4. js 分层地图
 
-25 个模块按 `build.py` 的 `JS_MANIFEST` 顺序加载（开发期即 `index.html` 里 `<script>` 的顺序）。
+28 个模块按 `build.py` 的 `JS_MANIFEST` 顺序加载（开发期即 `index.html` 里 `<script>` 的顺序）。
 用文件名找功能，用文件内的 `// =====` 注释标题定位更稳。`config/database.js` 是纯数据表（9 张表，见表末）。
 
 | 模块 | 职责 | 关键符号 |
@@ -172,18 +173,25 @@ Hark 的沙盒没有 WebGL、也下载不到 Playwright 的 arm64 Chromium，所
 | `entities/pelican.js` | 鹈鹕 + 自行车模型、腿部 IK、喉囊、服饰配件 outfit | `player`、`updLegs()`、`wobblePouch()`、`outfit` |
 | `entities/vehicles.js` | CARS 建模、VPAR 参数、P/R/N/D 挡位、转向灯、倒车、车牌补丁 | `CARS`、`buildCar()`、`spawnCar()`、`pcar`、`drive`、`setGear()` |
 | `entities/pedestrians.js` | 学校区域、行人生成与横穿马路 | `makePed()`、`updPeds()`、`hitPed()`、`inSchool()` |
-| `entities/traffic.js` | 车流 AI 巡航避障、路边停车、抢车与车主追逐 | `updTraffic()`、`carPlayerInteract()`、`stealCar()`、`updCrime()` |
+| `entities/traffic.js` | 车流 AI 巡航避障、路边停车、抢车（走过去上车）、车主步行/打车追 30 秒、下车取回自行车 | `updTraffic()`、`carPlayerInteract()`、`stealCar()`、`finishBoard()`、`updChase()`、`exitStolen()`、`refreshDriveUI()`、`leftBike`、`updCrime()` |
 | `systems/rules.js` | 交警/警车/驾照/罚单、驾校科目二/三/四 | `LIC`、`ticket()`、`revoke()`、`K4POOL`（数据在 database）、`beginExam()` |
 | `systems/delivery.js` | 外卖接单/取送餐/时限评分/连单/小费、途中拾取、连单倍率 | `JOB`、`orders`、`newOffer()`、`delivered()`、`STREAK`、`makeFish()` |
 | `systems/interior.js` | 建筑内部（店铺/住宅楼）、电梯楼梯、店内 NPC 对话、户外步行 | `INT`、`shopEnter()`、`towerEnter()`、`startFoot()` |
 | `systems/quests.js` | 24 种蓝色 ! 支线、聊天 NPC、小偷追击与解谜、杂项调度 | `QTYPES`（数据在 database）、`sqUpdate()`、`TALKS`、`v13Update()`、`v15Update()` |
 | `systems/phone.js` | 灵动岛、9 个 App、20 通剧情来电、日历/回家/钓鱼 | `openPhone()`、`islUpdate()`、`chooseCall()`、`CAL`、`goHome()` |
 | `systems/health.js` | HP/受伤/血迹/医院、彩蛋（UFO/雕像） | `hurt()`、`hospital()`、`eggsUpdate()` |
+| `systems/fuel.js` | v0.1.10：油量（`SAVE.fuel` / `stolen.fuel`）、加油站（每 6×6 街区，`gasAt()`，`poiAt` 在该地块返回 null）、送油车、拟真引擎声、汽车音量 | `getFuel()`、`fuelUpdate()`、`fuelAct()`、`nearestGas()`、`updCarAudio()`、`carVol`、`fuelOut` |
+| `systems/memes.js` | v0.1.10：2026 年 7–10 月抖音热梗彩蛋（路边热梗 NPC、luke、牛、闪身步、超长蛋挞、大水、显化） | `memesUpdate()`、`memeAct()`、`MEME_NPC`、`LUKE` |
+| `systems/achievements.js` | v0.1.10：成就 5 类 50 个、奖励 🪙50–500、进度条、称号；覆盖 `unlock`/`renderAch`/`showStart` | `ACH2`、`achCount()`、`curTitle()`、`ACHX` |
 | `ui/modals.js` | toast、通用设置菜单、弹窗 ✕ 按钮、横竖屏 | `toast()`、`segCtl()`、`checkOrient()`、`LIGHTS` |
 | `ui/hud.js` | 仪表盘/罗盘、触控按键/摇杆、互动按钮 act2、摄像机 | `drawGauge()`、`updCamera()`、`setAct2()`、`showSteer()`、`standUp()`、`hardReset()` |
 | `ui/shop.js` | 商店三栏渲染、换装预览、兑换码核销 | `renderShop()`、`openShop()`、`applyEquip()`、`useItem()` |
 | `ui/skin.js` | UI 皮肤补丁：emoji 清洗/手绘图标、倒车灯/挡杆、驾照页/骑手页/求职网 | （覆盖 `renderShop`、`renderAch`、`renderLic`、`renderJob`、`renderJobs`） |
 | `main.js` | 主循环 `frame()`、调试钩子 `window.__*`、启动 | `frame()`、`updAudio()` |
+
+> 互动按钮优先级（`v13Update`）：聊天 NPC > 加油/送油车 > 热梗 NPC/便利店/显化 > 抢车/还车 > 门口。
+> 腿部显示规则在 `main.js`：只有坐在汽车/摩托上（`pel.parent === lean && drive !== 'bike'`）才隐藏腿。
+> 室内视角在 `interior.js` 的 `intCamMode()`：四种视角都夹在 `intRoomBox()` 里；室内/步行时 `controls.enabled = false`。
 
 > 跨层调用只许**由上往下**（ui → systems → entities → world → core/config），运行时回调除外。
 > 顶层（加载期）代码不许引用后加载模块的绑定，否则 TDZ 报错；已知特例见 §2.1「依赖铁律」。
@@ -240,6 +248,8 @@ Hark 的沙盒没有 WebGL、也下载不到 Playwright 的 arm64 Chromium，所
 | `pel_slot1..3` | 手动存档：`{s: pelicanSave 原文, c: pelicanCodes, coins, day, t}` |
 | `pel_cur` | 当前槽位号 |
 | `pel_music` / `pel_viphint` / `pel_fresh` | 音乐开关 / VIP 提示是否已出 / 新档标记 |
+| `pel_carvol` | v0.1.10：汽车音量 0–1，默认 0（关闭） |
+| `pelicanSave.x` 新字段 | v0.1.10：`fuel`（自己的车油量 {pana, moto}）、`achx`（成就计数器）、`title`（佩戴的称号）、`meme_*` |
 
 > 改存档结构时要**兼容旧存档**（读的时候给默认值），用户手机里有进度。SAVE 新增字段如果要持久化，记得改 `saveCoins()` 里的筛选正则。
 
