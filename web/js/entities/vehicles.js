@@ -705,15 +705,8 @@ function setModel(id) {
   revMode = false;
   sig = 0;
   if (window.updShift) updShift();
-  const motor = drive !== 'bike';
-  $('gas').textContent = motor ? '油门' : '蹬车';
-  $('bell').innerHTML = '<i class="ico i-bell"></i>';
-  $('sig').style.display = motor ? 'flex' : 'none';
-  $('gear').style.display = drive === 'car' ? 'block' : 'none';
-  $('beltB').style.display = drive === 'car' && !exam ? 'block' : 'none';
-  $('beltB').classList.toggle('on2', belt);
+  refreshDriveUI();
   $('topv').style.display = fieldOn ? 'block' : 'none';
-  updSigUI();
 }
 function updSigUI() {
   $('sigL').classList.toggle('on', sig === -1);
