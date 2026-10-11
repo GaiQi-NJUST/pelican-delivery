@@ -1,6 +1,7 @@
 # task.md — 鹈鹕外卖员 项目交接文档（给接手的 Agent）
 
 > 当前版本：**v0.1.9 Preview**（未发布正式版）  ·  最后更新：2026-10-11  ·  上一任开发：Hark
+> 2026-10-11 晚重构：`web/game.js` 单文件已拆分为 `web/js/` 分层模块（config/core/world/entities/systems/ui，见 §1、§4），构建产物行为不变。
 > 项目负责人 / 策划：小盖（GitHub `GaiQi-NJUST`，南京理工大学）。和他沟通一律用**简体中文**。
 
 读完这份文档，你应该能：找到任何一个功能在代码里的位置、改完能正确打包、知道哪些设计是用户拍板过的、不该随便动。
@@ -14,7 +15,7 @@
 | 类型 | 3D 骑行送外卖小游戏，南京背景，主角是骑自行车的鹈鹕 |
 | 技术 | Three.js **r147**（全局 `THREE`，非 ES module）+ 原生 JS，无框架、无打包器 |
 | 形态 | 单文件 `index.html`（≈1 MB，图片 base64 内嵌）；安卓用 WebView 外壳加载同一个文件 |
-| 主代码 | `web/game.js`（≈2400 行，≈340 KB，**一个 IIFE 包住全部逻辑**） |
+| 主代码 | `web/js/`：25 个分层模块（config/core/world/entities/systems/ui），dist 打包时拼进**同一个 IIFE**（见 §4 分层地图） |
 | 屏幕 | 手机横屏为主，竖屏也做了适配；触屏按钮 + 键盘 |
 | 存档 | `localStorage`，3 个手动存档槽 + 自动存档 |
 | 线上 | 网页版托管在 hark.site（国内打不开）；国内用户靠 APK |
@@ -29,22 +30,21 @@ pelican-delivery/
 ├── task.md                ← 本文件：内部交接
 ├── .gitignore             忽略 *.apk / *.keystore 等
 ├── web/
-│   ├── shell.html         页面骨架：所有 HUD / 弹窗 DOM + 基础 CSS，含占位符 /*GAME*/ 和 __LOGO__
-│   ├── game.js            主逻辑（见第 4 节分区地图），含占位符 /*IMGS*/{}
-│   ├── detail.js          视觉精细化补丁：楼面贴图、屋顶、树、车牌（被注入 game.js 内部执行）
-│   ├── ui_part.js         UI 皮肤：剥离 emoji、换成手绘 SVG 图标、金币图标；含占位符 /*ICONS*/
-│   ├── ui2.js             倒车灯、P/R/N/D 挡杆、驾照页 / 骑手页 / 求职网改版；含占位符 /*MASCOTS*/
-│   ├── ui_assets.css      图标与按钮素材（base64，体积大）
-│   ├── ui_skin.css        液态玻璃皮肤
-│   ├── ui2.css            ui2.js 对应样式
-│   ├── phone2.css         手机、来电、灵动岛、商店三栏、存档面板样式
-│   ├── imgs.json          截图裁剪素材（手机图标、接听挂断按钮、商店物品图等）→ 注入 IMG 对象
-│   ├── icons.json         手绘 SVG 图标表 → 注入 ICONSVG
-│   ├── m_*.webp           求职网四家公司的吉祥物 → 注入 MASC
-│   ├── logo_s.png         标题字「鹈鹕外卖员」→ 替换 __LOGO__
-│   ├── music.js           ⚠ 旧版背景音乐，**不参与构建**（音乐已内联在 game.js「background music」段）
-│   ├── build.py           打包脚本
-│   └── index.html         打包产物（three.js 走 jsDelivr CDN）
+│   ├── index.html         ★开发入口★：语义化 HTML，直接 <link>/<script> 引用 css/ 与 js/，双击即玩
+│   ├── build.py           打包脚本：① 由 assets/ 生成 js/config/assets.js；② 打包出 dist/index.html
+│   ├── dist/index.html    发布单文件（CSS 内联、JS 包 IIFE 内联、three.js 走 CDN、logo 转 dataURL），勿手改
+│   ├── js/                游戏源码：25 个模块，经典 <script> 按序加载、共享全局作用域（见 §4 分层地图）
+│   │   ├── config/        constants.js（世界常量）/ assets.js（由 build.py 生成）/ database.js（纯数据表）
+│   │   ├── core/          utils.js（工具）/ state.js（状态机+存档）/ save.js（存档面板）/ audio.js（音频）
+│   │   ├── world/         scene.js（场景/相机/天气）/ road.js（道路）/ scenery.js（景物+视觉补丁）
+│   │   ├── entities/      pelican.js（鹈鹕）/ vehicles.js（车辆）/ pedestrians.js（行人）/ traffic.js（车流）
+│   │   ├── systems/       rules.js（交规）/ delivery.js（外卖）/ interior.js（室内）/ quests.js（支线）
+│   │   │                  phone.js（手机）/ health.js（HP/彩蛋）
+│   │   ├── ui/            modals.js（弹窗/设置）/ hud.js（HUD/按键）/ shop.js（商店）/ skin.js（UI 皮肤补丁）
+│   │   └── main.js        主循环、调试钩子、启动
+│   ├── css/               base.css → glass.css → phone.css → ui2.css → assets.css（层叠顺序即引用顺序）
+│   ├── assets/            imgs.json / icons.json / logo_s.png / mascots/*.webp / vendor/three.min.js+OrbitControls.js
+│   ├── legacy/            不参与构建的旧文件（旧版 music.js）
 ├── android/
 │   ├── AndroidManifest.xml  包名 com.gaiqi.pelican，versionCode 10，versionName "0.1.9 Preview"，横屏全屏
 │   ├── src/com/gaiqi/pelican/MainActivity.java   WebView：开 JS / DomStorage / 文件访问，沉浸式全屏，常亮
@@ -57,6 +57,11 @@ pelican-delivery/
     └── smoke_test.py        Playwright 冒烟测试
 ```
 
+> 设计约束：**不要改成 ES module / 不要引入打包器**。Android WebView 从 file:// 加载，
+> ES module 会被 CORS 拦掉；且 three.js 必须保持 r147 全局脚本版。所以模块拆分只做
+> 「源码组织」：开发期是多个经典 `<script>` 按序加载、共享全局词法作用域；`build.py`
+> 在 dist 产物外包一层 IIFE，语义与开发期一致——这是刻意的设计，不是技术债。
+
 ---
 
 ## 2. 构建流程
@@ -64,19 +69,29 @@ pelican-delivery/
 ### 2.1 网页
 
 ```bash
-cd web && python3 build.py        # 输出 web/index.html，打印 KB 数
+# 开发：直接用浏览器打开 web/index.html（25 个模块按序加载，改完刷新即看）
+# 发布：
+cd web && python3 build.py        # 输出 dist/index.html，打印 KB 数
 ```
 
 `build.py` 做的事（顺序很重要）：
 
-1. 读 `game.js`，把 `/*IMGS*/{}` 替换成 `imgs.json` 内容 → 代码里用 `IMG.xxx` 取图。
-2. 把 `detail.js` + `ui_part.js`（`/*ICONS*/` ← `icons.json` 的 `icons`）+ `ui2.js`（`/*MASCOTS*/` ← 4 张 webp 的 dataURL）拼起来，
-   **插入到 game.js 最后一个 `})();` 之前**——所以这三个文件运行在主 IIFE 的作用域里，可以直接用 `$`、`renderer`、`scene`、`state`、`toast` 等内部变量。
-3. 四个 CSS 依次拼接，塞进 `shell.html` 第一个 `</style>` 前。
-4. `shell.html` 的 `/*GAME*/` ← 拼好的 JS；`__LOGO__` ← `logo_s.png` dataURL。
+1. 由 `assets/` 生成 **`js/config/assets.js`** 并提交到仓库：`imgs.json` → `const IMG`，`icons.json` 的 `icons` → `const ICONSVG`，`assets/mascots/*.webp` → `const MASC`（dataURL 数组）。素材变更后重跑本脚本即可同步；**不要手改**这个文件。
+2. 把 `index.html` 的 `<!--__CSS_BLOCK__-->` 替换为内联 `<style>`（按 `CSS_MANIFEST` 顺序拼接 `css/`）。
+3. 把 `index.html` 的 `<!--__JS_BLOCK__-->` 替换为：two CDN `<script>`（three.js r147 + OrbitControls）+ 一个 `<script>` 内含 `(function(){` + 按 `JS_MANIFEST` 顺序拼接的 25 个模块 + `})();`。IIFE 包裹保证 dist 与开发期（多 script 共享全局作用域）语义一致。
+4. `assets/logo_s.png` → dataURL；输出 `dist/index.html`。
 
-> 新增 JS 文件：要么写进 game.js，要么在 build.py 里拼进 `ui` 字符串。新增 CSS：加到 `css=` 那一行。
+> 新增 JS 模块：在 `js/` 下新建文件，并在 `build.py` 的 `JS_MANIFEST` **和** `index.html` 的 `<!--__JS_BLOCK__-->` 里按执行顺序登记（两处顺序必须一致）。
+> 新增 CSS：在 `css/` 下新建文件，并在 `build.py` 的 `CSS_MANIFEST` **和** `index.html` 的 `<!--__CSS_BLOCK__-->` 里按层叠顺序登记。
+> 素材声明（`IMG` / `ICONSVG` / `MASC`）不要手写，由 `build.py` 从 `assets/` 生成。
 
+**模块加载顺序（依赖铁律）**：`config`（无依赖）→ `core` → `world` → `entities` → `systems` → `ui` → `main.js`。
+细则：`entities/pedestrians.js` 必须在 `entities/traffic.js` 之前（抢车追逐的 `chaser` 顶层调用 `makePed`）；
+`js/config/assets.js` 必须在 `js/core/utils.js` 之前（`PHI` 等用 `IMG`）。违反会报 `ReferenceError`（TDZ）。
+
+### 2.2 安卓 APK
+
+1. `cp web/dist/index.html android/assets/index.html`
 ### 2.2 安卓 APK
 
 1. `cp web/index.html android/assets/index.html`
@@ -130,46 +145,48 @@ Hark 的沙盒没有 WebGL、也下载不到 Playwright 的 arm64 Chromium，所
 - 红绿灯不存状态：`light(i,j,ax)` 按全局时间 `T` + 路口哈希 `hash(i,j)` 算出颜色，`lightLeft()` 算剩余秒数。24 秒一周期。
 - 商家 / 住宅 POI 由街区坐标确定性生成（`poiAt()`、`poisOfBlock()`、`SHOPS`、`HOMES`）。
 
-### 3.4 主循环 `frame()`（game.js 末尾）
+### 3.4 主循环 `frame()`（`js/main.js` 末尾）
 每帧顺序：`dt` 截断到 0.05 → `ride` 下：转向 / 油门 / 刹车 / 挡位 / 体力 / 急刹摔车 → 位移 + `clampRoad()` 路沿 → `examUpdate` / `rulesUpdate`（交规）/ `vipHint` → 路口进出判定（闯红灯、转向灯）→ 拾取鱼干 / 能量饮料 → 任务进度 → `crash` 物理 → `updTraffic` + `carPlayerInteract` → 红绿灯、交警动画 → 鹈鹕骨骼（腿 IK、喉囊、眨眼）→ 对象池、云、太阳 → 摄像机 → 罗盘 / 红绿灯提示 / 距离 → `updWalk`、`delivUpdate`、`updRain`、`updPeds`、`v13Update`、`updBlood`、`updHP`、`eggsUpdate`、`v15Update` → `updMissionUI` → `drawGauge` → `updAudio` → `render`。
 
 > 新系统一般挂在 `v15Update(dt,t)` 里（它再分发给日历、灵动岛、来电、支线、小偷、性能调节等）。
 
 ---
 
-## 4. game.js 分区地图
+## 4. js 分层地图
 
-行号是 v0.1.9 的大致位置，用注释标题 `// =====` 搜索更稳。
+25 个模块按 `build.py` 的 `JS_MANIFEST` 顺序加载（开发期即 `index.html` 里 `<script>` 的顺序）。
+用文件名找功能，用文件内的 `// =====` 注释标题定位更稳。`config/database.js` 是纯数据表（9 张表，见表末）。
 
-| 行（约） | 分区 | 关键符号 |
+| 模块 | 职责 | 关键符号 |
 |---|---|---|
-| 1–30 | 工具函数 | `$`、`mesh`、`tube`、`taper`、`canvasTex`、`rnd`、`pick`、`clamp` |
-| 31–40 | 常量 / 红绿灯 | `IMG`、`B`、`RH`、`R`、`light()`、`lightLeft()`、`wrap()` |
-| 41–125 | 光照、地面道路、街区、路口池、景物、云 / 星 / 山 | `LIGHTS`、`updScenery` |
-| 126–226 | 玩家：鹈鹕 + 自行车模型 | `wheel`、`updChain`、`wobblePouch`、`updLegs`（腿 IK） |
-| 227–311 | 车辆 | `CARS`、`TYPES`、`buildCar`、`spawnCar`、`placeCar` |
-| 312–333 | 拾取物、目的地光柱 | `makeFish`、`placePickup`、`beacon` |
-| 334–395 | 音效 + 程序化背景音乐（C 大调 128 BPM） | `initAudio`、`SFX`、`startMusic`、`setMusic` |
-| 396–464 | 状态、经典任务、存档读写 | `MS`、`CFG`、`SAVE`、`saveCoins()`、`newMission`、`finish` |
-| 465–542 | UI 通用：toast、设置、存档面板、横竖屏 | `toast`、`openSaves`、`slotGet`、`checkOrient` |
-| 543–650 | 商店 / 车库 / 装扮 / 道具 | `SHOP`、`CODES`、`applyEquip`、`useItem`、`renderShop`、`openShop` |
-| 651–702 | 摩托、驾校教练车、转向灯、挡位 | `VPAR`、`setSig`、`setGear`、`toggleGear` |
-| 703–791 | 交警 / 警车 / 驾照 / 罚单 | `LIC`、`ticket()`、`revoke()`、`accident()`、`rulesUpdate()` |
-| 792–1004 | 科目四题库、科目二考场、科目三 | `K4POOL`、`FIELD`、`beginExam`、`e2Update`、`e3Update` |
-| 1005–1060 | 仪表盘、物理辅助、摄像机、对象池 | `drawGauge`、`clampRoad`、`crash`、`updCamera` |
-| 1061–1108 | 车流 AI、车道箭头 | `updTraffic`、`carPlayerInteract` |
-| 1109–1181 | 路边商家与居民楼、招牌、雨 | `SHOPS`、`HOMES`、`poiAt`、`startRain` |
-| 1182–1366 | **外卖核心**：派单、取送、步行动画、随机事件、评分、解雇、求职网、成就 | `JOB`、`COS`、`orders`、`newOffer`、`pickedUp`、`delivered`、`rateJob`、`fire`、`cancelOrder`、`EV_*`、`ACHS` |
-| 1367–1486 | 中国式道路、学校区域、行人 | `roadInfo`、`inSchool`、`updPeds`、`hitPed` |
-| 1487–1586 | v0.1.3：抢车 + 车主追逐、下雪、聊天 NPC、连单倍率 | `stealCar`、`updCrime`、`startSnow`、`TALKS`、`STREAK` |
-| 1587–1672 | v0.1.4：建筑内部（店铺 + 住宅楼剖面）、3D 餐品 | `INT`、`intRoot`、`foodModel`、`setupShop` |
-| 1673–1758 | v0.1.5：16 家店主题、店内 NPC、对话、摇杆 | `THEMES`、`NPC_*`、`SHOP_TALK`、`joyMove` |
-| 1759–1904 | 室内自由移动：店铺、住宅楼、电梯、楼梯、敲门；户外步行 | `shopEnter`、`towerEnter`、`elevRide`、`stairsUpd`、`knock`、`startFoot` |
-| 1905–2125 | 弹窗、日历、回家、**灵动岛**、**手机**、**20 通来电**、音乐、钓鱼小游戏 | `mdlOpen`、`CAL`、`goHome`、`islUpdate`、`openPhone`、`APPS`、`CALLDB`、`chooseCall`、`answer`、`hang` |
-| 2126–2229 | **24 种支线**（蓝色 ! NPC） | `QTYPES`、`sqSpawn`、`sqStart`、`sqUpdate`、`sqDone` |
-| 2230–2275 | 偷车贼 + 3 种解谜、交警「重新开车」、自适应像素比、取消订单 | `thiefUpdate`、`pzLock/pzRiddle/pzSimon`、`reformScene`、`perfUpd`、`playerCancel` |
-| 2276–2316 | 生命值、受伤、血迹、医院、彩蛋 | `hurt`、`hospital`、`updHP`、`eggsUpdate` |
-| 2317–末尾 | 主循环、音频更新、调试钩子、启动 | `frame`、`updAudio`、`window.__*` |
+| `config/constants.js` | 世界常量：街区/道路尺寸、红绿灯计算、坐标环绕 | `B`、`RH`、`R`、`light()`、`lightLeft()`、`wrap()`、`T` |
+| `config/assets.js` | ⚠️ 由 `build.py` 生成：图片/手绘图标/吉祥物（勿手改） | `IMG`、`ICONSVG`、`MASC` |
+| `config/database.js` | 纯数据：商店目录、兑换码、科目四题库、24 种支线、20 通来电、App、外卖平台、经典任务、店铺主题 | `SHOP`、`CODES`、`K4POOL`、`QTYPES`、`CALLDB`、`APPS`、`COS`、`MS`、`THEMES` |
+| `core/utils.js` | 环境自检（THREE 加载失败报错）、DOM/几何/纹理 helpers | `$`、`fail`、`V`、`M`、`mesh`、`tube`、`taper`、`canvasTex`、`rnd`、`pick`、`clamp`、`speckle`、`dummy` |
+| `core/state.js` | 全局状态机、物理量、经典任务、SAVE 存档读写 | `state`、`SAVE`、`saveCoins()`、`newMission()`、`finish()`、`freeMode()` |
+| `core/save.js` | 3 格手动存档读写、存档管理面板 | `slotGet()`、`curSlot()`、`openSaves()` |
+| `core/audio.js` | Web Audio 合成音效、128 BPM 程序化背景音乐 | `initAudio()`、`SFX`、`startMusic()`、`setMusic()` |
+| `world/scene.js` | renderer/scene/camera 创建、光照天空、下雪、下雨 | `renderer`、`scene`、`camera`、`applyLight()`、`startSnow()`、`startRain()` |
+| `world/road.js` | 地面/路口网格、中国式双向四车道、世界对象池环绕 | `updPools()`、`updSegs()`、`roadInfo()`、`nearUturn()` |
+| `world/scenery.js` | 实例化景物池、路边商家/居民楼/招牌、视觉精细化补丁（楼面/屋顶/树） | `updScenery()`、`updPOI()`、`poiAt()` |
+| `entities/pelican.js` | 鹈鹕 + 自行车模型、腿部 IK、喉囊、服饰配件 outfit | `player`、`updLegs()`、`wobblePouch()`、`outfit` |
+| `entities/vehicles.js` | CARS 建模、VPAR 参数、P/R/N/D 挡位、转向灯、倒车、车牌补丁 | `CARS`、`buildCar()`、`spawnCar()`、`pcar`、`drive`、`setGear()` |
+| `entities/pedestrians.js` | 学校区域、行人生成与横穿马路 | `makePed()`、`updPeds()`、`hitPed()`、`inSchool()` |
+| `entities/traffic.js` | 车流 AI 巡航避障、路边停车、抢车与车主追逐 | `updTraffic()`、`carPlayerInteract()`、`stealCar()`、`updCrime()` |
+| `systems/rules.js` | 交警/警车/驾照/罚单、驾校科目二/三/四 | `LIC`、`ticket()`、`revoke()`、`K4POOL`（数据在 database）、`beginExam()` |
+| `systems/delivery.js` | 外卖接单/取送餐/时限评分/连单/小费、途中拾取、连单倍率 | `JOB`、`orders`、`newOffer()`、`delivered()`、`STREAK`、`makeFish()` |
+| `systems/interior.js` | 建筑内部（店铺/住宅楼）、电梯楼梯、店内 NPC 对话、户外步行 | `INT`、`shopEnter()`、`towerEnter()`、`startFoot()` |
+| `systems/quests.js` | 24 种蓝色 ! 支线、聊天 NPC、小偷追击与解谜、杂项调度 | `QTYPES`（数据在 database）、`sqUpdate()`、`TALKS`、`v13Update()`、`v15Update()` |
+| `systems/phone.js` | 灵动岛、9 个 App、20 通剧情来电、日历/回家/钓鱼 | `openPhone()`、`islUpdate()`、`chooseCall()`、`CAL`、`goHome()` |
+| `systems/health.js` | HP/受伤/血迹/医院、彩蛋（UFO/雕像） | `hurt()`、`hospital()`、`eggsUpdate()` |
+| `ui/modals.js` | toast、通用设置菜单、弹窗 ✕ 按钮、横竖屏 | `toast()`、`segCtl()`、`checkOrient()`、`LIGHTS` |
+| `ui/hud.js` | 仪表盘/罗盘、触控按键/摇杆、互动按钮 act2、摄像机 | `drawGauge()`、`updCamera()`、`setAct2()`、`showSteer()`、`standUp()`、`hardReset()` |
+| `ui/shop.js` | 商店三栏渲染、换装预览、兑换码核销 | `renderShop()`、`openShop()`、`applyEquip()`、`useItem()` |
+| `ui/skin.js` | UI 皮肤补丁：emoji 清洗/手绘图标、倒车灯/挡杆、驾照页/骑手页/求职网 | （覆盖 `renderShop`、`renderAch`、`renderLic`、`renderJob`、`renderJobs`） |
+| `main.js` | 主循环 `frame()`、调试钩子 `window.__*`、启动 | `frame()`、`updAudio()` |
+
+> 跨层调用只许**由上往下**（ui → systems → entities → world → core/config），运行时回调除外。
+> 顶层（加载期）代码不许引用后加载模块的绑定，否则 TDZ 报错；已知特例见 §2.1「依赖铁律」。
 
 ---
 
@@ -230,7 +247,7 @@ Hark 的沙盒没有 WebGL、也下载不到 Playwright 的 arm64 Chromium，所
 
 ## 7. 调试钩子
 
-game.js 末尾把内部状态挂到 `window` 上，方便 Playwright / Node 测试：
+`js/main.js` 末尾把内部状态挂到 `window` 上，方便 Playwright / Node 测试：
 `__lic`、`__job`、`__orders`、`__ach`、`__rate`、`__peds`、`__hp`、`__hurt`、`__ri`（当前道路信息）、`__setV`（设速度）、`__tp`（传送）、`__tgt`、`__deliv`、`__exam`、`__acceptOffer`、`__dbg`。
 **不要删**，测试依赖它们。
 
@@ -262,7 +279,7 @@ game.js 末尾把内部状态挂到 `window` 上，方便 Playwright / Node 测�
 ## 10. 发布清单
 
 1. 改源码 → `python3 web/build.py`
-2. `node --check web/game.js` + 跑 `logs/smoke_test.py`（无报错才继续）
+2. 语法检查：按 `build.py` 的 `JS_MANIFEST` 顺序拼接后 `node --check`（单个 src 文件不是独立合法的 JS，共用一个 IIFE，直接 check 会报未闭合）+ 跑 `logs/smoke_test.py`（无报错才继续）
 3. 同步 `android/assets/index.html`（换本地 three.js）→ versionCode +1、versionName 改新版本 → 用原 keystore 签名
 4. `logs/develop.log` 追加本次改动；有修 bug 就追加 `logs/error.log`
 5. README 的版本徽章和「更新日志」改成新版本

@@ -240,3 +240,37 @@
 [实现] 全部版本号 v1.x → v0.1.x，当前 v0.1.9 Preview；AndroidManifest versionName
        改为 "0.1.9 Preview"（versionCode 仍为 10，保证可覆盖安装）；
        新增根目录 task.md：给其他 agent 的项目交接文档。
+
+--------------------------------------------------------------------------------
+[2026-10-11 晚] 代码结构重构：src/ 编号模块 → js/ 分层架构
+--------------------------------------------------------------------------------
+[需求] 用户："先给我重构代码结构再冒烟测试啊喂，原来这个根本没有什么代码结构在啊"。
+       目标：web/index.html 作开发入口（多文件引用）、js/ 分层、dist/ 单文件产物。
+[实现] 25 个模块，经典 <script> 按序加载、共享全局作用域（无 ES module/打包器，
+       Android WebView file:// 下 CORS 限制，见 task.md §1 设计约束）：
+       config/constants.js（世界常量）/ assets.js（build.py 生成，已提交）/ database.js（9 张纯数据表）；
+       core/utils.js（工具）/ state.js（状态机+存档）/ save.js（存档面板）/ audio.js；
+       world/scene.js（场景/相机/雨雪）/ road.js（道路）/ scenery.js（景物+视觉补丁）；
+       entities/pelican.js（鹈鹕+服饰）/ vehicles.js（车辆+车牌补丁）/ pedestrians.js（行人）/ traffic.js（车流+抢车）；
+       systems/rules.js（交规）/ delivery.js（外卖+拾取+连单）/ interior.js（室内+NPC+步行）/
+              quests.js（支线+聊天NPC+小偷+杂项）/ phone.js（手机）/ health.js（HP/彩蛋）；
+       ui/modals.js（弹窗/设置）/ hud.js（HUD/按键/相机）/ shop.js（商店）/ skin.js（UI 皮肤补丁）；
+       main.js（主循环）。
+       - web/index.html：开发入口（<!--__CSS_BLOCK__-->/<!--__JS_BLOCK__--> 引用块）。
+       - python3 build.py：① 生成 js/config/assets.js；② 打包 dist/index.html
+         （CSS 内联、25 模块拼 bundle 外包 IIFE、three.js 切 CDN、logo 转 dataURL）。
+       - css/ 重命名为 base/glass/phone/ui2/assets.css；assets/vendor/ 内置 three r147。
+       - 拆分时修了 2 个重排引入的 TDZ bug：road.js 顶层的 roadX.concat(arrX…) 移到
+         traffic.js（arrX 定义后）；quests.js 顶层的 isl2.style 移到 phone.js（isl2 创建处）。
+[校验] ① 25 模块 + bundle 全部 node --check 通过；② 新旧 bundle 语句多重集 diff：
+       零代码行丢失/重复（差异仅注释头与 AN/hiTex  intentional 复用）；③ 顶层前向引用
+       静态检查清零；④ Playwright 冒烟测试通过（截图 logs/smoke/）。
+       旧 src/、shell.html、game.js/detail.js/ui_part.js/ui2.js 单体文件已删除（git 历史可查）。
+
+--------------------------------------------------------------------------------
+[2026-10-11 晚] Bug 修复：E020（商店按钮 44px）/ E025（返回键常驻）
+--------------------------------------------------------------------------------
+[实现] E020：商店「兑换」「返回」按钮 min-height:44px（原 70×42px）。
+       E025：删除 shell.html 里 v0.1.9 商店三栏改版后没删干净的旧商店残留标记
+       （飘在 #shop 弹窗外，导致返回按钮永远显示 + shGrid/code/redeem/closeShop
+       四组重复 ID）。现 ID 全部唯一。

@@ -86,8 +86,10 @@
 **改代码后重新打包：**
 
 ```bash
+# 开发：直接用浏览器打开 web/index.html（多文件引用，改完刷新即看）
+# 发布：
 cd web
-python3 build.py      # 把 game.js / shell.html / css / 图片素材打包成单文件 index.html
+python3 build.py      # 生成 js/config/assets.js，并把 css/ + js/ 打包成 dist/index.html
 ```
 
 **冒烟测试（每次改动后必跑）：**
@@ -103,7 +105,7 @@ python logs/smoke_test.py
 
 ```bash
 # 1. 网页改完后同步到安卓
-cp web/index.html android/assets/index.html
+cp web/dist/index.html android/assets/index.html
 #    并把其中两处 three.js 的 CDN 地址换成本地的 three.min.js、OrbitControls.js
 
 # 2. 用 Android Studio 打开，或用 aapt2 + d8 + apksigner 打包签名
@@ -117,14 +119,15 @@ cp web/index.html android/assets/index.html
 ```
 pelican-delivery/
 ├── web/
-│   ├── game.js          # 主逻辑：地图、骑行物理、订单、交规、来电、支线、商店、存档
-│   ├── shell.html       # 页面骨架与 HUD
-│   ├── phone2.css       # 手机 / 商店界面
-│   ├── ui_*.css ui2.css # 界面皮肤
-│   ├── detail.js ui_part.js ui2.js   # 界面组件
-│   ├── imgs.json icons.json *.webp   # 内嵌图片素材
-│   ├── build.py         # 打包脚本
-│   └── index.html       # 打包好的成品
+│   ├── index.html       # ★开发入口★：直接引用 css/ 与 js/，双击即玩
+│   ├── build.py         # 打包脚本：生成 js/config/assets.js，打包出 dist/index.html
+│   ├── dist/index.html  # 发布单文件（勿手改）
+│   ├── js/              # 游戏源码：25 个分层模块（config/core/world/entities/systems/ui + main.js）
+│   │   │                # 开发期多 <script> 按序加载；dist 打包时拼进同一个 IIFE（见 task.md §4）
+│   │   └── config/assets.js  # 由 build.py 从 assets/ 生成（IMG / ICONSVG / MASC），已提交
+│   ├── css/             # 样式：base → glass → phone → ui2 → assets
+│   ├── assets/          # 图片素材：imgs.json / icons.json / logo_s.png / mascots/ / vendor/
+│   ├── legacy/          # 不参与构建的旧文件（如旧版 music.js）
 ├── android/
 │   ├── AndroidManifest.xml
 │   ├── src/com/gaiqi/pelican/MainActivity.java

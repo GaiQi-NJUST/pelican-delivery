@@ -28,16 +28,19 @@ def tap(page, selector, wait=600):
 with sync_playwright() as p:
     browser = p.chromium.launch(args=["--use-gl=swiftshader", "--enable-webgl", "--ignore-gpu-blocklist"])
     page = browser.new_page(viewport={"width": 915, "height": 412}, device_scale_factor=2, has_touch=True)
+    page.set_default_timeout(90000)  # SwiftShader 软件渲染慢，加长所有等待
     page.on("pageerror", lambda e: errors.append(f"pageerror: {e}"))
     page.on("console", lambda m: m.type == "error" and errors.append(f"console: {m.text}"))
 
-    page.goto(PAGE.as_uri())
-    page.wait_for_timeout(3000)
+    # 软件渲染（SwiftShader）下首屏很慢：不等 load 事件，改等游戏就绪信号
+    page.goto(PAGE.as_uri(), wait_until="domcontentloaded", timeout=120000)
+    page.wait_for_function("typeof window.__dbg === 'function'", timeout=120000)
+    page.wait_for_timeout(1500)
     page.screenshot(path=str(OUT / "01_home.png"))
 
-    # 用户协议：勾选并同意
-    for sel in ["input[type=checkbox]", "text=同意", "text=我已阅读"]:
-        tap(page, sel)
+    # 用户协议：勾选并同意（用 id 选择器；text=同意 会误匹配 label 文案）
+    tap(page, "#agCk")
+    tap(page, "#agGo")
     # 进入新游戏
     for sel in ["text=新游戏", "text=开始"]:
         if tap(page, sel, 2500):
