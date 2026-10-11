@@ -2,7 +2,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.gaiqi.pelican"
     android:versionCode="10"
-    android:versionName="1.9">
+    android:versionName="0.1.9 Preview">
     <uses-sdk android:minSdkVersion="21" android:targetSdkVersion="33" />
     <uses-permission android:name="android.permission.INTERNET" />
     <application
